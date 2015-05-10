@@ -17,34 +17,42 @@ def handle_node(node):
 	print node[0]
 
 def get_people_from_db():
+	# Is ID necessary? Maybe not
 	results = graph.cypher.execute("MATCH (a)-[:`http://xmlns.com/foaf/0.1/name`]->(b) RETURN b")
 	return [ r.b.properties['value'] for r in results]
 
-def add_to_db(data):
+def add_to_db(data, debug=False):
+	for node in data:
+		cmt_ids = node['cmt_ids']
+
 	tx = graph.cypher.begin()
 	for d in data['children']:
 		tx.append("TODO QUERY") # TODO
 
 if __name__ == '__main__':
-	g = []
-	print get_people_from_db()
-#	for person in get_people_from_db():
-#		person_name = person['name'] # TODO
-#		data = search(person_name)
-#		for cmt in data:
-#			existing_nodes = [n for n in g if n['person'] == person_name]
-#
-#			if len(existing_nodes) > 0:
-#				for e_node in existing_nodes:
-#					mentioned_person = {]
-#					mentioned_person['id'] = data['data']['id']
-#					metioned_person['person'] = person_name
-#					e_node['mentioned'].add(mentioned_person)
-#					g.add(e_node)
-#			
-#			node = {}
-#			node['id'] = data['data']['id']
-#			node['person'] = person_name
-#			node['mentioned'] = []
-#			g.add(node)
+	debug = False
+	if len(sys.argv) > 1 and sys.argv[1] == '-v':
+		debug = True
+	cmts = {}
+	
+	for person_name in get_people_from_db():
+		if debug: print 'Searching reddit mentions for ' + person_name
+		data = search(person_name)
+		cmt_ids = [ str(d['data']['id']) for d in data['data']['children'] ]
+		if debug: print 'Found ' + str(len(cmt_ids)) + ' mentions'
+		
+		# Save mentions - decreases complexity
+		for cmt in cmt_ids:
+			if debug: print 'Checking mention with id ' + str(cmt)
+			if cmt in cmts:
+				if debug: print 'Found! Updating...'
+				cmts[cmt].append(person_name)
+			else:
+				if debug: print 'Not found! Creating new one...'
+				cmts[cmt] = [ person_name ]
 
+
+	print str(cmts)
+
+	# add_to_db(g)
+		
